@@ -3,7 +3,8 @@ window.Shortly = Backbone.View.extend({
 
   events: {
     'click li a.index':  'renderIndexView',
-    'click li a.create': 'renderCreateView'
+    'click li a.create': 'renderCreateView',
+    'click li a.logout': 'logout'
   },
 
   initialize: function(){
@@ -23,14 +24,14 @@ window.Shortly = Backbone.View.extend({
 
   renderIndexView: function(e){
     e && e.preventDefault();
-    this.router.navigate('/', { trigger: true });
+    this.router.navigate('/', {trigger:true});
   },
 
   renderCreateView: function(e){
     e && e.preventDefault();
     this.router.navigate('/create', { trigger: true });
   },
-
+  
   updateNav: function(routeName){
     this.$el.find('.navigation li a')
       .removeClass('selected')

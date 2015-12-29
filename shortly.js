@@ -22,12 +22,13 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
-
-var session = false;
+app.use(session({secret: 'danandkyle'}))
+var sess;
 
 app.get('/', 
 function(req, res) {
-  if(session){
+  sess = req.session
+  if(sess.username){
     res.render('index');
   }else{
     res.redirect("/login")
@@ -39,9 +40,17 @@ function(req, res){
   res.render("login")
 });
 
+app.get('/logout',
+function(req, res){
+  req.session.destroy();
+  console.log('its here')
+  res.redirect('/login');
+})
+
 app.get('/create',
 function(req, res){ 
-  if(session){
+  sess = req.session
+  if(sess.username){
       res.render('index');
     }else{
       res.redirect("/login")
@@ -50,7 +59,8 @@ function(req, res){
 
 app.get('/links', 
 function(req, res) {
-  if(session){
+  sess = req.session
+  if(sess.username){
     Links.reset().fetch().then(function(links) {
       res.send(200, links.models);
     });
@@ -72,7 +82,6 @@ function(req, res){
       username: req.body.username,
       password: pass
     }).then(function(something){
-      session = true;
       res.redirect('/');
     });
   });
@@ -82,12 +91,10 @@ app.post('/login',
 function(req, res){
   new User({username: req.body.username}).fetch().then(function(user){
     if(user){
-      console.log(user, "user")
       var hashPass = user.get('password');
-      console.log(hashPass, "hashpass")
       bcrypt.compare(req.body.password, hashPass, function(err, response){
         if(!err){
-          session = true;
+          req.session.username = req.body.username
           res.redirect("/");
         }else{
           res.redirect("/login");
