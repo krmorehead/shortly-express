@@ -2,7 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var bcrypt = require('bcrypt-nodejs');
+var session = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -22,23 +23,86 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var session = false;
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  if(session){
+    res.render('index');
+  }else{
+    res.redirect("/login")
+  }
 });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
+app.get('/login', 
+function(req, res){
+  res.render("login")
+});
+
+app.get('/create',
+function(req, res){ 
+  if(session){
+      res.render('index');
+    }else{
+      res.redirect("/login")
+    }
 });
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  if(session){
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+  }else{
+    res.redirect("/login")
+  }
+});
+
+app.get('/signup', 
+function(req, res){
+  res.render('signup')
+});
+
+app.post("/signup", 
+function(req, res){
+  // new User(req.body.username, req.body.password);
+  util.passwordHash(req.body.password, function(err, pass){
+    Users.create({
+      username: req.body.username,
+      password: pass
+    }).then(function(something){
+      session = true;
+      res.redirect('/');
+    });
   });
 });
+
+app.post('/login', 
+function(req, res){
+  new User({username: req.body.username}).fetch().then(function(user){
+    if(user){
+      console.log(user, "user")
+      var hashPass = user.get('password');
+      console.log(hashPass, "hashpass")
+      bcrypt.compare(req.body.password, hashPass, function(err, response){
+        if(!err){
+          session = true;
+          res.redirect("/");
+        }else{
+          res.redirect("/login");
+        }
+      });
+    }
+    else{
+      res.redirect("/login");
+    }
+  });
+});
+
+// bcrypt.compare("bacon", hash, function(err, res) {
+//     // res == true
+// });
 
 app.post('/links', 
 function(req, res) {
